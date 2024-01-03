@@ -1,1 +1,1 @@
-from generators.generators import generate_mnist, generate_femnist, generate_cifar10, generate_cifar100
+from generators.generators import generate_mnist, generate_fmnist, generate_cifar10, generate_cifar100

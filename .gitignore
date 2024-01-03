@@ -1,6 +1,7 @@
 system/models/
+system/flcore/clients/__pycache__/
 results/
 dataset/cifar10/
 dataset/cifar100/
 dataset/mnist/
-dataset/femnist/
+dataset/fmnist/

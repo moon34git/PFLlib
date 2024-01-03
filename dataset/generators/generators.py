@@ -89,7 +89,7 @@ def generate_mnist(dir_path, num_clients, num_classes, niid, balance, partition,
     save_file(config_path, train_path, test_path, train_data, test_data, num_clients, num_classes, 
         statistic, alpha, batch_size, niid, balance, partition)
 
-def generate_femnist(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_size, 
+def generate_fmnist(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_size, 
                    alpha, batch_size, least_samples):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)

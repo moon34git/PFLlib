@@ -56,7 +56,7 @@
 # nohup python -u main.py -lbs 16 -nc 20 -jr 1 -nb 10 -data Cifar10 -m dnn -algo FedProx -gr 2000 -did 0 -mu 0.001 -go dnn > cifar10_fedprox.out 2>&1 &
 # nohup python -u main.py -lbs 16 -nc 20 -jr 1 -nb 10 -data Cifar10 -m cnn -algo FedProx -gr 2000 -did 0 -mu 0.001 -go cnn > cifar10_fedprox1.out 2>&1 &
 # nohup python -u main.py -lbs 16 -nc 20 -jr 1 -nb 10 -data Cifar10 -m resnet -algo FedProx -gr 2000 -did 0 -mu 0.001 -go resnet > cifar10_fedprox2.out 2>&1 &
-
+python main.py -lbs 16 -nc 20 -jr 1 -nb 10 -data cifar10 -m cnn -algo FedProx -gr 3 -did 0 -mu 0.001 -go cnn
 # nohup python -u main.py -lbs 16 -nc 20 -jr 1 -nb 10 -data Cifar10 -m dnn -algo pFedMe -gr 2000 -did 0 -lr 0.01 -lrp 0.01 -bt 1 -lam 15 -go dnn > cifar10_pfedme.out 2>&1 &
 # nohup python -u main.py -lbs 16 -nc 20 -jr 1 -nb 10 -data Cifar10 -m cnn -algo pFedMe -gr 2000 -did 0 -lr 0.01 -lrp 0.01 -bt 1 -lam 15 -go cnn > cifar10_pfedme1.out 2>&1 &
 # nohup python -u main.py -lbs 16 -nc 20 -jr 1 -nb 10 -data Cifar10 -m resnet -algo pFedMe -gr 2000 -did 0 -lr 0.01 -lrp 0.01 -bt 1 -lam 15 -go resnet > cifar10_pfedme2.out 2>&1 &

@@ -1,5 +1,5 @@
 import argparse
-from generators.generators import generate_mnist, generate_femnist, generate_cifar10, generate_cifar100
+from generators.generators import generate_mnist, generate_fmnist, generate_cifar10, generate_cifar100
 
 def run(args):
     if args.data_dist == 'niid':
@@ -13,8 +13,8 @@ def run(args):
     if args.dataset == 'mnist':
         generate_mnist(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_size,
                        args.alpha, args.batch_size, args.least_samples)
-    elif args.dataset == 'femnist':
-        generate_femnist(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_size,
+    elif args.dataset == 'fmnist':
+        generate_fmnist(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_size,
                        args.alpha, args.batch_size, args.least_samples)
     elif args.dataset == 'cifar10':
         generate_cifar10(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_size,
@@ -29,7 +29,7 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', "--dataset", type=str, default="mnist", 
-                        help="The name of dataset", choices=['mnist', 'femnist', 'cifar10', 'cifar100'])
+                        help="The name of dataset", choices=['mnist', 'fmnist', 'cifar10', 'cifar100'])
     parser.add_argument('-nclasses', "--num_classes", type=int, default=10,
                         help="The number of classes")
     parser.add_argument('-dir', '--dir_path', type=str, default="dataset/",
