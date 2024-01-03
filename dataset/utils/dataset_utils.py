@@ -21,12 +21,8 @@ import numpy as np
 import gc
 from sklearn.model_selection import train_test_split
 
-batch_size = 10
-train_size = 0.75 # merge original training set and test set, then split it manually. 
-least_samples = 1 # guarantee that each client must have at least one samples for testing. 
-alpha = 0.1 # for Dirichlet distribution
 
-def check(config_path, train_path, test_path, num_clients, num_classes, niid=False, 
+def check(config_path, train_path, test_path, num_clients, num_classes, alpha, batch_size, niid=False, 
         balance=True, partition=None):
     # check existing dataset
     if os.path.exists(config_path):
@@ -51,7 +47,7 @@ def check(config_path, train_path, test_path, num_clients, num_classes, niid=Fal
 
     return False
 
-def separate_data(data, num_clients, num_classes, niid=False, balance=False, partition=None, class_per_client=None):
+def separate_data(data, num_clients, num_classes, alpha, least_samples, niid=False, balance=False, partition=None, class_per_client=None):
     X = [[] for _ in range(num_clients)]
     y = [[] for _ in range(num_clients)]
     statistic = [[] for _ in range(num_clients)]
@@ -121,7 +117,9 @@ def separate_data(data, num_clients, num_classes, niid=False, balance=False, par
 
         for j in range(num_clients):
             dataidx_map[j] = idx_batch[j]
+
     else:
+        print('In non-IID condition, Partition must be "pat" or "dir".')
         raise NotImplementedError
 
     # assign data
@@ -145,7 +143,7 @@ def separate_data(data, num_clients, num_classes, niid=False, balance=False, par
     return X, y, statistic
 
 
-def split_data(X, y):
+def split_data(X, y, train_size):
     # Split dataset
     train_data, test_data = [], []
     num_samples = {'train':[], 'test':[]}
@@ -163,13 +161,14 @@ def split_data(X, y):
     print("The number of train samples:", num_samples['train'])
     print("The number of test samples:", num_samples['test'])
     print()
+
     del X, y
     # gc.collect()
 
     return train_data, test_data
 
 def save_file(config_path, train_path, test_path, train_data, test_data, num_clients, 
-                num_classes, statistic, niid=False, balance=True, partition=None):
+                num_classes, statistic, alpha, batch_size, niid=False, balance=True, partition=None):
     config = {
         'num_clients': num_clients, 
         'num_classes': num_classes, 

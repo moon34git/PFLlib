@@ -99,7 +99,7 @@ def run(args):
         if model_str == "mlr": # convex
             if "mnist" in args.dataset:
                 args.model = Mclr_Logistic(1*28*28, num_classes=args.num_classes).to(args.device)
-            elif "Cifar10" in args.dataset:
+            elif "cifar10" in args.dataset:
                 args.model = Mclr_Logistic(3*32*32, num_classes=args.num_classes).to(args.device)
             else:
                 args.model = Mclr_Logistic(60, num_classes=args.num_classes).to(args.device)
@@ -107,7 +107,7 @@ def run(args):
         elif model_str == "cnn": # non-convex
             if "mnist" in args.dataset:
                 args.model = FedAvgCNN(in_features=1, num_classes=args.num_classes, dim=1024).to(args.device)
-            elif "Cifar10" in args.dataset:
+            elif "cifar10" in args.dataset:
                 args.model = FedAvgCNN(in_features=3, num_classes=args.num_classes, dim=1600).to(args.device)
             elif "omniglot" in args.dataset:
                 args.model = FedAvgCNN(in_features=1, num_classes=args.num_classes, dim=33856).to(args.device)
@@ -120,7 +120,7 @@ def run(args):
         elif model_str == "dnn": # non-convex
             if "mnist" in args.dataset:
                 args.model = DNN(1*28*28, 100, num_classes=args.num_classes).to(args.device)
-            elif "Cifar10" in args.dataset:
+            elif "cifar10" in args.dataset:
                 args.model = DNN(3*32*32, 100, num_classes=args.num_classes).to(args.device)
             else:
                 args.model = DNN(60, 20, num_classes=args.num_classes).to(args.device)
@@ -363,7 +363,7 @@ def run(args):
     
 
     # Global average
-    average_data(dataset=args.dataset, algorithm=args.algorithm, goal=args.goal, times=args.times)
+    average_data(dataset=args.dataset, algorithm=args.algorithm, data_dir=args.data_dir, goal=args.goal, times=args.times)
 
     print("All done!")
 
@@ -379,7 +379,7 @@ if __name__ == "__main__":
                         help="The goal for this experiment")
     parser.add_argument('-dev', "--device", type=str, default="cuda",
                         choices=["cpu", "cuda"])
-    parser.add_argument('-did', "--device_id", type=str, default="0")
+    parser.add_argument('-did', "--device_id", type=str, default="2")
     parser.add_argument('-data', "--dataset", type=str, default="mnist")
     parser.add_argument('-nb', "--num_classes", type=int, default=10)
     parser.add_argument('-m', "--model", type=str, default="cnn")
@@ -475,15 +475,24 @@ if __name__ == "__main__":
     # FedAvgDBE
     parser.add_argument('-mo', "--momentum", type=float, default=0.1)
     parser.add_argument('-klw', "--kl_weight", type=float, default=0.0)
+    
+    # Personalized
+    parser.add_argument('-dir', '--data_dir', type=str, default='data')
+
 
 
     args = parser.parse_args()
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.device_id
+    # os.environ["CUDA_VISIBLE_DEVICES"] = args.device_id
 
     if args.device == "cuda" and not torch.cuda.is_available():
         print("\ncuda is not avaiable.\n")
         args.device = "cpu"
+
+    print ('Available devices ', torch.cuda.device_count())
+    print ('Current cuda device ', torch.cuda.current_device())
+    torch.cuda.set_device(2)
+    print('Current cuda device ', torch.cuda.current_device())
 
     print("=" * 50)
 
@@ -512,13 +521,14 @@ if __name__ == "__main__":
     print("Auto break: {}".format(args.auto_break))
     if not args.auto_break:
         print("Global rounds: {}".format(args.global_rounds))
-    if args.device == "cuda":
-        print("Cuda device id: {}".format(os.environ["CUDA_VISIBLE_DEVICES"]))
+    # if args.device == "cuda":
+        # print("Cuda device id: {}".format(os.environ["CUDA_VISIBLE_DEVICES"]))
     print("DLG attack: {}".format(args.dlg_eval))
     if args.dlg_eval:
         print("DLG attack round gap: {}".format(args.dlg_gap))
     print("Total number of new clients: {}".format(args.num_new_clients))
     print("Fine tuning epoches on new clients: {}".format(args.fine_tuning_epoch_new))
+    print(f"Dataset Path: {args.data_dir}")
     print("=" * 50)
 
 

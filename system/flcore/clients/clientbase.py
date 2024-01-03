@@ -46,6 +46,9 @@ class Client(object):
         self.learning_rate = args.local_learning_rate
         self.local_epochs = args.local_epochs
 
+        # add
+        self.data_dir = args.data_dir
+
         # check BatchNorm
         self.has_BatchNorm = False
         for layer in self.model.children():
@@ -73,13 +76,13 @@ class Client(object):
     def load_train_data(self, batch_size=None):
         if batch_size == None:
             batch_size = self.batch_size
-        train_data = read_client_data(self.dataset, self.id, is_train=True)
+        train_data = read_client_data(self.dataset, self.id, self.data_dir, is_train=True)
         return DataLoader(train_data, batch_size, drop_last=True, shuffle=True)
 
     def load_test_data(self, batch_size=None):
         if batch_size == None:
             batch_size = self.batch_size
-        test_data = read_client_data(self.dataset, self.id, is_train=False)
+        test_data = read_client_data(self.dataset, self.id, self.data_dir ,is_train=False)
         return DataLoader(test_data, batch_size, drop_last=False, shuffle=True)
         
     def set_parameters(self, model):
@@ -145,6 +148,7 @@ class Client(object):
 
         train_num = 0
         losses = 0
+
         with torch.no_grad():
             for x, y in trainloader:
                 if type(x) == type([]):

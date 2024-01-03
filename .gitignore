@@ -1,1 +1,6 @@
-*__pycache__*
+system/models/
+results/
+dataset/cifar10/
+dataset/cifar100/
+dataset/mnist/
+dataset/femnist/

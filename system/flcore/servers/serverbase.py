@@ -50,6 +50,9 @@ class Server(object):
         self.save_folder_name = args.save_folder_name
         self.top_cnt = 100
         self.auto_break = args.auto_break
+        
+        #add
+        self.data_dir = args.data_dir
 
         self.clients = []
         self.selected_clients = []
@@ -81,8 +84,8 @@ class Server(object):
 
     def set_clients(self, clientObj):
         for i, train_slow, send_slow in zip(range(self.num_clients), self.train_slow_clients, self.send_slow_clients):
-            train_data = read_client_data(self.dataset, i, is_train=True)
-            test_data = read_client_data(self.dataset, i, is_train=False)
+            train_data = read_client_data(self.dataset, i, self.data_dir ,is_train=True)
+            test_data = read_client_data(self.dataset, i, self.data_dir, is_train=False)
             client = clientObj(self.args, 
                             id=i, 
                             train_samples=len(train_data), 
@@ -169,22 +172,22 @@ class Server(object):
         model_path = os.path.join("models", self.dataset)
         if not os.path.exists(model_path):
             os.makedirs(model_path)
-        model_path = os.path.join(model_path, self.algorithm + "_server" + ".pt")
+        model_path = os.path.join(model_path, self.data_dir.split('/')[-1] + "_" + self.algorithm + "_server" + ".pt")
         torch.save(self.global_model, model_path)
 
     def load_model(self):
         model_path = os.path.join("models", self.dataset)
-        model_path = os.path.join(model_path, self.algorithm + "_server" + ".pt")
+        model_path = os.path.join(model_path, self.data_dir.split('/')[-1] + "_" + self.algorithm + "_server" + ".pt")
         assert (os.path.exists(model_path))
         self.global_model = torch.load(model_path)
 
     def model_exists(self):
         model_path = os.path.join("models", self.dataset)
-        model_path = os.path.join(model_path, self.algorithm + "_server" + ".pt")
+        model_path = os.path.join(model_path, self.data_dir.split('/')[-1] + "_" + self.algorithm + "_server" + ".pt")
         return os.path.exists(model_path)
         
     def save_results(self):
-        algo = self.dataset + "_" + self.algorithm
+        algo = self.data_dir.split('/')[-1] + "_" + self.algorithm
         result_path = "../results/"
         if not os.path.exists(result_path):
             os.makedirs(result_path)
