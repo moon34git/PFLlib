@@ -218,6 +218,7 @@ class Server(object):
         num_samples = []
         tot_correct = []
         tot_auc = []
+        #각 클라이언트에 대한 Test Metrics
         for c in self.clients:
             ct, ns, auc = c.test_metrics()
             tot_correct.append(ct*1.0)
@@ -225,34 +226,65 @@ class Server(object):
             num_samples.append(ns)
 
         ids = [c.id for c in self.clients]
+        print('@'*20)
+        print('test_metrics')
 
         return ids, num_samples, tot_correct, tot_auc
-
+    
     def train_metrics(self):
         if self.eval_new_clients and self.num_new_clients > 0:
             return [0], [1], [0]
         
         num_samples = []
         losses = []
+        losses_by_clients = {}
+
+        for c in self.clients:
+            losses_by_clients[c.id] = 0
+        
+        #각 클라이언트에 대한 Train Metrics
         for c in self.clients:
             cl, ns = c.train_metrics()
-            num_samples.append(ns)
+            # num_samples.append(ns)
             losses.append(cl*1.0)
+            losses.append(cl)
+            losses_by_clients[c.id] = cl / ns
 
         ids = [c.id for c in self.clients]
-
+        print('@'*20)
+        print('train_metrics')
+        # print(losses_by_clients)
+        # print(np.sum(list(losses_by_clients.values())) * 1.0 / 20)
         return ids, num_samples, losses
 
-    # evaluate selected clients
-    def evaluate(self, acc=None, loss=None):
-        stats = self.test_metrics()
-        stats_train = self.train_metrics()
+    # def train_metrics(self):
+    #     if self.eval_new_clients and self.num_new_clients > 0:
+    #         return [0], [1], [0]
+        
+    #     num_samples = []
+    #     losses = []
+    #     #각 클라이언트에 대한 Train Metrics
+    #     for c in self.clients:
+    #         cl, ns = c.train_metrics()
+    #         num_samples.append(ns)
+    #         losses.append(cl*1.0)
 
-        test_acc = sum(stats[2])*1.0 / sum(stats[1])
-        test_auc = sum(stats[3])*1.0 / sum(stats[1])
-        train_loss = sum(stats_train[2])*1.0 / sum(stats_train[1])
-        accs = [a / n for a, n in zip(stats[2], stats[1])]
-        aucs = [a / n for a, n in zip(stats[3], stats[1])]
+    #     ids = [c.id for c in self.clients]
+    #     print('@'*20)
+    #     print('train_metrics')
+    #     return ids, num_samples, losses
+    
+    def evaluate(self, acc=None, loss=None):
+        #글로벌 Metrics
+        ids, num_samples, tot_correct, tot_auc = self.test_metrics()
+        ids, num_samples_, losses = self.train_metrics()
+
+        test_acc = sum(tot_correct)*1.0 / sum(num_samples)
+        test_auc = sum(tot_auc)*1.0 / sum(num_samples)
+        train_loss = sum(losses)*1.0 / sum(num_samples_)
+
+        accs = [a / n for a, n in zip(tot_correct, num_samples)]
+        aucs = [a / n for a, n in zip(tot_auc, num_samples)]
         
         if acc == None:
             self.rs_test_acc.append(test_acc)
@@ -265,11 +297,13 @@ class Server(object):
             loss.append(train_loss)
 
         print("Averaged Train Loss: {:.4f}".format(train_loss))
+        # print("Averaged Train Loss: {}".format(train_loss))
         print("Averaged Test Accurancy: {:.4f}".format(test_acc))
         print("Averaged Test AUC: {:.4f}".format(test_auc))
         # self.print_(test_acc, train_acc, train_loss)
         print("Std Test Accurancy: {:.4f}".format(np.std(accs)))
         print("Std Test AUC: {:.4f}".format(np.std(aucs)))
+
 
     def print_(self, test_acc, test_auc, train_loss):
         print("Average Test Accurancy: {:.4f}".format(test_acc))

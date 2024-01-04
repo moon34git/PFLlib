@@ -1,5 +1,6 @@
 system/models/
 system/flcore/clients/__pycache__/
+system/flcore/servers/__pycache__/
 results/
 dataset/cifar10/
 dataset/cifar100/

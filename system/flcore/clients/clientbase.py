@@ -117,7 +117,6 @@ class Client(object):
                     x = x.to(self.device)
                 y = y.to(self.device)
                 output = self.model(x)
-
                 test_acc += (torch.sum(torch.argmax(output, dim=1) == y)).item()
                 test_num += y.shape[0]
 
@@ -129,10 +128,10 @@ class Client(object):
                 if self.num_classes == 2:
                     lb = lb[:, :2]
                 y_true.append(lb)
-
+        
         # self.model.cpu()
         # self.save_model(self.model, 'model')
-
+        
         y_prob = np.concatenate(y_prob, axis=0)
         y_true = np.concatenate(y_true, axis=0)
 

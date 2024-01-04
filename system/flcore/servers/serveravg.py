@@ -42,11 +42,13 @@ class FedAvg(Server):
             self.selected_clients = self.select_clients()
             self.send_models()
 
+            # 취합된 모델 (글로벌 모델) 평가
             if i%self.eval_gap == 0:
                 print(f"\n-------------Round number: {i}-------------")
                 print("\nEvaluate global model")
                 self.evaluate()
 
+            # 로컬 훈련
             for client in self.selected_clients:
                 client.train()
 
