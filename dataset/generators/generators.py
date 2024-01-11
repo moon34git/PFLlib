@@ -28,8 +28,22 @@ from utils.dataset_utils import check, separate_data, split_data, save_file
 random.seed(1)
 np.random.seed(1)
 
-def generate_mnist(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_size, 
-                   alpha, batch_size, least_samples):
+def subsample_dataset(dataset, samples_per_class, num_classes):
+    class_counts = {i: 0 for i in range(num_classes)}
+    indices = []
+
+    for i in range(len(dataset)):
+        _, label = dataset[i]
+        if class_counts[label] < samples_per_class:
+            indices.append(i)
+            class_counts[label] += 1
+            if all(count == samples_per_class for count in class_counts.values()):
+                break
+    
+    return torch.utils.data.Subset(dataset, indices)
+
+def generate_mnist(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_ratio, 
+                   alpha, batch_size, least_samples, sampling_ratio):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
         
@@ -38,7 +52,7 @@ def generate_mnist(dir_path, num_clients, num_classes, niid, balance, partition,
     train_path = dir_path + "/train/"
     test_path = dir_path + "/test/"
 
-    if check(config_path, train_path, test_path, num_clients, num_classes, alpha, batch_size, niid, balance, partition):
+    if check(config_path, train_path, test_path):
         return
 
     # FIX HTTP Error 403: Forbidden
@@ -51,46 +65,45 @@ def generate_mnist(dir_path, num_clients, num_classes, niid, balance, partition,
 
     # Get MNIST data
 
-    
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.5], [0.5])])
     trainset = torchvision.datasets.MNIST(
         root=root_dir_path, train=True, download=True, transform=transform)
     testset = torchvision.datasets.MNIST(
         root=root_dir_path, train=False, download=True, transform=transform)
+    
 
-    trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=len(trainset.data), shuffle=False)
-    testloader = torch.utils.data.DataLoader(
-        testset, batch_size=len(testset.data), shuffle=False)
+    ### 일부 이용
+    trainset = subsample_dataset(trainset, (len(trainset)*sampling_ratio/num_classes), num_classes)
+    testset = subsample_dataset(testset, (len(testset)*sampling_ratio/num_classes), num_classes)
 
-    for _, train_data in enumerate(trainloader, 0):
-        trainset.data, trainset.targets = train_data
-    for _, test_data in enumerate(testloader, 0):
-        testset.data, testset.targets = test_data
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset), shuffle=False)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=False)
 
     dataset_image = []
     dataset_label = []
 
-    dataset_image.extend(trainset.data.cpu().detach().numpy())
-    dataset_image.extend(testset.data.cpu().detach().numpy())
-    dataset_label.extend(trainset.targets.cpu().detach().numpy())
-    dataset_label.extend(testset.targets.cpu().detach().numpy())
+    for _, data in enumerate(trainloader, 0):
+        inputs, labels = data
+        dataset_image.extend(inputs.cpu().detach().numpy())
+        dataset_label.extend(labels.cpu().detach().numpy())
+
+    for _, data in enumerate(testloader, 0):
+        inputs, labels = data
+        dataset_image.extend(inputs.cpu().detach().numpy())
+        dataset_label.extend(labels.cpu().detach().numpy())
+    
+    # Convert lists to NumPy arrays
     dataset_image = np.array(dataset_image)
     dataset_label = np.array(dataset_label)
 
-    # dataset = []
-    # for i in range(num_classes):
-    #     idx = dataset_label == i
-    #     dataset.append(dataset_image[idx])
-
     X, y, statistic = separate_data((dataset_image, dataset_label), num_clients, num_classes, alpha, 
                                     least_samples, niid, balance, partition, class_per_client)
-    train_data, test_data = split_data(X, y, train_size)
+    train_data, test_data = split_data(X, y, train_ratio)
     save_file(config_path, train_path, test_path, train_data, test_data, num_clients, num_classes, 
-        statistic, alpha, batch_size, niid, balance, partition)
+        statistic, alpha, batch_size, class_per_client, train_ratio, least_samples, sampling_ratio, niid, balance, partition)
 
-def generate_fmnist(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_size, 
-                   alpha, batch_size, least_samples):
+def generate_fmnist(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_ratio, 
+                   alpha, batch_size, least_samples, sampling_ratio):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
         
@@ -99,7 +112,7 @@ def generate_fmnist(dir_path, num_clients, num_classes, niid, balance, partition
     train_path = dir_path + "/train/"
     test_path = dir_path + "/test/"
 
-    if check(config_path, train_path, test_path, num_clients, num_classes, alpha, batch_size, niid, balance, partition):
+    if check(config_path, train_path, test_path):
         return
 
     root_dir_path = dir_path.split("/")[0] + "/rawdata"
@@ -111,23 +124,27 @@ def generate_fmnist(dir_path, num_clients, num_classes, niid, balance, partition
         root=root_dir_path, train=True, download=True, transform=transform)
     testset = torchvision.datasets.FashionMNIST(
         root=root_dir_path, train=False, download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=len(trainset.data), shuffle=False)
-    testloader = torch.utils.data.DataLoader(
-        testset, batch_size=len(testset.data), shuffle=False)
+    ### 일부 이용
+    trainset = subsample_dataset(trainset, (len(trainset)*sampling_ratio/num_classes), num_classes)
+    testset = subsample_dataset(testset, (len(testset)*sampling_ratio/num_classes), num_classes)
 
-    for _, train_data in enumerate(trainloader, 0):
-        trainset.data, trainset.targets = train_data
-    for _, test_data in enumerate(testloader, 0):
-        testset.data, testset.targets = test_data
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset), shuffle=False)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=False)
 
     dataset_image = []
     dataset_label = []
 
-    dataset_image.extend(trainset.data.cpu().detach().numpy())
-    dataset_image.extend(testset.data.cpu().detach().numpy())
-    dataset_label.extend(trainset.targets.cpu().detach().numpy())
-    dataset_label.extend(testset.targets.cpu().detach().numpy())
+    for _, data in enumerate(trainloader, 0):
+        inputs, labels = data
+        dataset_image.extend(inputs.cpu().detach().numpy())
+        dataset_label.extend(labels.cpu().detach().numpy())
+
+    for _, data in enumerate(testloader, 0):
+        inputs, labels = data
+        dataset_image.extend(inputs.cpu().detach().numpy())
+        dataset_label.extend(labels.cpu().detach().numpy())
+    
+    # Convert lists to NumPy arrays
     dataset_image = np.array(dataset_image)
     dataset_label = np.array(dataset_label)
 
@@ -138,12 +155,12 @@ def generate_fmnist(dir_path, num_clients, num_classes, niid, balance, partition
 
     X, y, statistic = separate_data((dataset_image, dataset_label), num_clients, num_classes, alpha, 
                                     least_samples, niid, balance, partition, class_per_client)
-    train_data, test_data = split_data(X, y, train_size)
+    train_data, test_data = split_data(X, y, train_ratio)
     save_file(config_path, train_path, test_path, train_data, test_data, num_clients, num_classes, 
-        statistic, alpha, batch_size, niid, balance, partition)
+        statistic, alpha, batch_size, class_per_client, train_ratio, least_samples, sampling_ratio, niid, balance, partition)
     
-def generate_cifar10(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_size, 
-                   alpha, batch_size, least_samples):
+def generate_cifar10(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_ratio, 
+                   alpha, batch_size, least_samples, sampling_ratio):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
         
@@ -152,7 +169,7 @@ def generate_cifar10(dir_path, num_clients, num_classes, niid, balance, partitio
     train_path = dir_path + "/train/"
     test_path = dir_path + "/test/"
 
-    if check(config_path, train_path, test_path, num_clients, num_classes, alpha, batch_size, niid, balance, partition):
+    if check(config_path, train_path, test_path):
         return
     
     root_dir_path = dir_path.split("/")[0] + "/rawdata"
@@ -165,23 +182,27 @@ def generate_cifar10(dir_path, num_clients, num_classes, niid, balance, partitio
         root=root_dir_path, train=True, download=True, transform=transform)
     testset = torchvision.datasets.CIFAR10(
         root=root_dir_path, train=False, download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=len(trainset.data), shuffle=False)
-    testloader = torch.utils.data.DataLoader(
-        testset, batch_size=len(testset.data), shuffle=False)
+    
+    trainset = subsample_dataset(trainset, (len(trainset)*sampling_ratio/num_classes), num_classes)
+    testset = subsample_dataset(testset, (len(testset)*sampling_ratio/num_classes), num_classes)
 
-    for _, train_data in enumerate(trainloader, 0):
-        trainset.data, trainset.targets = train_data
-    for _, test_data in enumerate(testloader, 0):
-        testset.data, testset.targets = test_data
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset), shuffle=False)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=False)
 
     dataset_image = []
     dataset_label = []
 
-    dataset_image.extend(trainset.data.cpu().detach().numpy())
-    dataset_image.extend(testset.data.cpu().detach().numpy())
-    dataset_label.extend(trainset.targets.cpu().detach().numpy())
-    dataset_label.extend(testset.targets.cpu().detach().numpy())
+    for _, data in enumerate(trainloader, 0):
+        inputs, labels = data
+        dataset_image.extend(inputs.cpu().detach().numpy())
+        dataset_label.extend(labels.cpu().detach().numpy())
+
+    for _, data in enumerate(testloader, 0):
+        inputs, labels = data
+        dataset_image.extend(inputs.cpu().detach().numpy())
+        dataset_label.extend(labels.cpu().detach().numpy())
+    
+    # Convert lists to NumPy arrays
     dataset_image = np.array(dataset_image)
     dataset_label = np.array(dataset_label)
 
@@ -192,12 +213,12 @@ def generate_cifar10(dir_path, num_clients, num_classes, niid, balance, partitio
 
     X, y, statistic = separate_data((dataset_image, dataset_label), num_clients, num_classes, alpha,
                                     least_samples, niid, balance, partition, class_per_client)
-    train_data, test_data = split_data(X, y, train_size)
+    train_data, test_data = split_data(X, y, train_ratio)
     save_file(config_path, train_path, test_path, train_data, test_data, num_clients, num_classes, 
-        statistic, alpha, batch_size, niid, balance, partition)
+        statistic, alpha, batch_size, class_per_client, train_ratio, least_samples, sampling_ratio, niid, balance, partition)
 
-def generate_cifar100(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_size, 
-                   alpha, batch_size, least_samples):
+def generate_cifar100(dir_path, num_clients, num_classes, niid, balance, partition, class_per_client, train_ratio, 
+                   alpha, batch_size, least_samples, sampling_ratio):
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
         
@@ -206,7 +227,7 @@ def generate_cifar100(dir_path, num_clients, num_classes, niid, balance, partiti
     train_path = dir_path + "/train/"
     test_path = dir_path + "/test/"
 
-    if check(config_path, train_path, test_path, num_clients, num_classes, alpha, batch_size, niid, balance, partition):
+    if check(config_path, train_path, test_path):
         return
     
     root_dir_path = dir_path.split("/")[0] + "/rawdata"
@@ -219,23 +240,26 @@ def generate_cifar100(dir_path, num_clients, num_classes, niid, balance, partiti
         root=root_dir_path, train=True, download=True, transform=transform)
     testset = torchvision.datasets.CIFAR100(
         root=root_dir_path, train=False, download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(
-        trainset, batch_size=len(trainset.data), shuffle=False)
-    testloader = torch.utils.data.DataLoader(
-        testset, batch_size=len(testset.data), shuffle=False)
+    trainset = subsample_dataset(trainset, (len(trainset)*sampling_ratio/num_classes), num_classes)
+    testset = subsample_dataset(testset, (len(testset)*sampling_ratio/num_classes), num_classes)
 
-    for _, train_data in enumerate(trainloader, 0):
-        trainset.data, trainset.targets = train_data
-    for _, test_data in enumerate(testloader, 0):
-        testset.data, testset.targets = test_data
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset), shuffle=False)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=False)
 
     dataset_image = []
     dataset_label = []
 
-    dataset_image.extend(trainset.data.cpu().detach().numpy())
-    dataset_image.extend(testset.data.cpu().detach().numpy())
-    dataset_label.extend(trainset.targets.cpu().detach().numpy())
-    dataset_label.extend(testset.targets.cpu().detach().numpy())
+    for _, data in enumerate(trainloader, 0):
+        inputs, labels = data
+        dataset_image.extend(inputs.cpu().detach().numpy())
+        dataset_label.extend(labels.cpu().detach().numpy())
+
+    for _, data in enumerate(testloader, 0):
+        inputs, labels = data
+        dataset_image.extend(inputs.cpu().detach().numpy())
+        dataset_label.extend(labels.cpu().detach().numpy())
+    
+    # Convert lists to NumPy arrays
     dataset_image = np.array(dataset_image)
     dataset_label = np.array(dataset_label)
 
@@ -246,6 +270,6 @@ def generate_cifar100(dir_path, num_clients, num_classes, niid, balance, partiti
 
     X, y, statistic = separate_data((dataset_image, dataset_label), num_clients, num_classes, alpha,
                                     least_samples, niid, balance, partition, class_per_client)
-    train_data, test_data = split_data(X, y, train_size)
+    train_data, test_data = split_data(X, y, train_ratio)
     save_file(config_path, train_path, test_path, train_data, test_data, num_clients, num_classes, 
-        statistic, alpha, batch_size, niid, balance, partition)
+        statistic, alpha, batch_size, class_per_client, train_ratio, least_samples, sampling_ratio, niid, balance, partition)

@@ -22,21 +22,11 @@ import gc
 from sklearn.model_selection import train_test_split
 
 
-def check(config_path, train_path, test_path, num_clients, num_classes, alpha, batch_size, niid=False, 
-        balance=True, partition=None):
+def check(config_path, train_path, test_path):
     # check existing dataset
     if os.path.exists(config_path):
-        with open(config_path, 'r') as f:
-            config = ujson.load(f)
-        if config['num_clients'] == num_clients and \
-            config['num_classes'] == num_classes and \
-            config['non_iid'] == niid and \
-            config['balance'] == balance and \
-            config['partition'] == partition and \
-            config['alpha'] == alpha and \
-            config['batch_size'] == batch_size:
-            print("\nDataset already generated.\n")
-            return True
+        print("\nDataset already generated.\n")
+        return True
 
     dir_path = os.path.dirname(train_path)
     if not os.path.exists(dir_path):
@@ -167,8 +157,8 @@ def split_data(X, y, train_size):
 
     return train_data, test_data
 
-def save_file(config_path, train_path, test_path, train_data, test_data, num_clients, 
-                num_classes, statistic, alpha, batch_size, niid=False, balance=True, partition=None):
+def save_file(config_path, train_path, test_path, train_data, test_data, num_clients, num_classes, statistic, alpha, batch_size, class_per_client, 
+              train_ratio, least_samples, sampling_ratio, niid=False, balance=True, partition=None):
     config = {
         'num_clients': num_clients, 
         'num_classes': num_classes, 
@@ -178,6 +168,10 @@ def save_file(config_path, train_path, test_path, train_data, test_data, num_cli
         'Size of samples for labels in clients': statistic, 
         'alpha': alpha, 
         'batch_size': batch_size, 
+        'class_per_client': class_per_client,
+        'train_ratio': train_ratio,
+        'least_samples': least_samples,
+        'sampling_ratio': sampling_ratio
     }
 
     # gc.collect()

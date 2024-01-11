@@ -209,7 +209,7 @@ class Server(object):
 
     def load_item(self, item_name):
         return torch.load(os.path.join(self.save_folder_name, "server_" + item_name + ".pt"))
-
+    
     def test_metrics(self):
         if self.eval_new_clients and self.num_new_clients > 0:
             self.fine_tuning_new_clients()
@@ -218,18 +218,21 @@ class Server(object):
         num_samples = []
         tot_correct = []
         tot_auc = []
+        acc_by_clients = {}
+
         #각 클라이언트에 대한 Test Metrics
         for c in self.clients:
+            #Test Acc, Test Sample, AUC of each client
             ct, ns, auc = c.test_metrics()
+            acc_by_clients[c.id] = round(ct*1.0 / ns, 4)
             tot_correct.append(ct*1.0)
             tot_auc.append(auc*ns)
             num_samples.append(ns)
 
-        ids = [c.id for c in self.clients]
-        print('@'*20)
-        print('test_metrics')
 
-        return ids, num_samples, tot_correct, tot_auc
+        ids = [c.id for c in self.clients]
+
+        return ids, num_samples, tot_correct, tot_auc, acc_by_clients
     
     def train_metrics(self):
         if self.eval_new_clients and self.num_new_clients > 0:
@@ -238,46 +241,23 @@ class Server(object):
         num_samples = []
         losses = []
         losses_by_clients = {}
-
-        for c in self.clients:
-            losses_by_clients[c.id] = 0
         
         #각 클라이언트에 대한 Train Metrics
         for c in self.clients:
             cl, ns = c.train_metrics()
-            # num_samples.append(ns)
+            num_samples.append(ns)
             losses.append(cl*1.0)
-            losses.append(cl)
-            losses_by_clients[c.id] = cl / ns
+            losses_by_clients[c.id] = round(cl*1.0 / ns, 4)
 
         ids = [c.id for c in self.clients]
-        print('@'*20)
-        print('train_metrics')
-        # print(losses_by_clients)
-        # print(np.sum(list(losses_by_clients.values())) * 1.0 / 20)
-        return ids, num_samples, losses
 
-    # def train_metrics(self):
-    #     if self.eval_new_clients and self.num_new_clients > 0:
-    #         return [0], [1], [0]
-        
-    #     num_samples = []
-    #     losses = []
-    #     #각 클라이언트에 대한 Train Metrics
-    #     for c in self.clients:
-    #         cl, ns = c.train_metrics()
-    #         num_samples.append(ns)
-    #         losses.append(cl*1.0)
-
-    #     ids = [c.id for c in self.clients]
-    #     print('@'*20)
-    #     print('train_metrics')
-    #     return ids, num_samples, losses
+        return ids, num_samples, losses, losses_by_clients
     
+    # 원본
     def evaluate(self, acc=None, loss=None):
         #글로벌 Metrics
-        ids, num_samples, tot_correct, tot_auc = self.test_metrics()
-        ids, num_samples_, losses = self.train_metrics()
+        ids, num_samples, tot_correct, tot_auc, test_acc_by_clients = self.test_metrics()
+        ids, num_samples_, losses, train_losses_by_clients = self.train_metrics()
 
         test_acc = sum(tot_correct)*1.0 / sum(num_samples)
         test_auc = sum(tot_auc)*1.0 / sum(num_samples)
@@ -303,6 +283,9 @@ class Server(object):
         # self.print_(test_acc, train_acc, train_loss)
         print("Std Test Accurancy: {:.4f}".format(np.std(accs)))
         print("Std Test AUC: {:.4f}".format(np.std(aucs)))
+
+        #add
+        return train_losses_by_clients, test_acc_by_clients
 
 
     def print_(self, test_acc, test_auc, train_loss):

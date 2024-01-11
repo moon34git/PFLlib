@@ -19,6 +19,7 @@ import time
 from flcore.clients.clientavg import clientAVG
 from flcore.servers.serverbase import Server
 from threading import Thread
+from collections import defaultdict
 
 
 class FedAvg(Server):
@@ -37,6 +38,9 @@ class FedAvg(Server):
 
 
     def train(self):
+        train_loss_history_by_clients = defaultdict(list)
+        test_acc_history_by_clients = defaultdict(list)
+
         for i in range(self.global_rounds+1):
             s_t = time.time()
             self.selected_clients = self.select_clients()
@@ -46,7 +50,10 @@ class FedAvg(Server):
             if i%self.eval_gap == 0:
                 print(f"\n-------------Round number: {i}-------------")
                 print("\nEvaluate global model")
-                self.evaluate()
+                train_losses_by_clients, test_acc_by_clients = self.evaluate()
+                for client in self.selected_clients:
+                    train_loss_history_by_clients[client.id].append(train_losses_by_clients[client.id])
+                    test_acc_history_by_clients[client.id].append(test_acc_by_clients[client.id])
 
             # 로컬 훈련
             for client in self.selected_clients:
@@ -85,3 +92,8 @@ class FedAvg(Server):
             print(f"\n-------------Fine tuning round-------------")
             print("\nEvaluate new clients")
             self.evaluate()
+
+        print('\nTrain Loss History by Clients')
+        print(dict(sorted(train_loss_history_by_clients.items())))
+        print('\nTest Accuracy History by Clients')
+        print(dict(sorted(test_acc_history_by_clients.items())))

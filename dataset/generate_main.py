@@ -11,17 +11,17 @@ def run(args):
     else:
         balance = False
     if args.dataset == 'mnist':
-        generate_mnist(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_size,
-                       args.alpha, args.batch_size, args.least_samples)
+        generate_mnist(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_ratio,
+                       args.alpha, args.batch_size, args.least_samples, args.sampling_ratio)
     elif args.dataset == 'fmnist':
-        generate_fmnist(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_size,
-                       args.alpha, args.batch_size, args.least_samples)
+        generate_fmnist(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_ratio,
+                       args.alpha, args.batch_size, args.least_samples, args.sampling_ratio)
     elif args.dataset == 'cifar10':
-        generate_cifar10(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_size,
-                       args.alpha, args.batch_size, args.least_samples)
+        generate_cifar10(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_ratio,
+                       args.alpha, args.batch_size, args.least_samples, args.sampling_ratio)
     elif args.dataset == 'cifar100':
-        generate_cifar100(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_size,
-                       args.alpha, args.batch_size, args.least_samples)
+        generate_cifar100(args.dir_path, args.num_clients, args.num_classes, niid, balance, args.partition, args.class_per_client, args.train_ratio,
+                       args.alpha, args.batch_size, args.least_samples, args.sampling_ratio)
     else:
         print("Dataset not found!")
     return
@@ -43,10 +43,12 @@ if __name__ == "__main__":
     parser.add_argument('-nclients', "--num_clients", type=int, default=20,
                         help="The number of clients")
     parser.add_argument('-cpc', "--class_per_client", type=int, default=2)
-    parser.add_argument('-ts', "--train_size", type=float, default=0.75)
+    parser.add_argument('-tr', "--train_ratio", type=float, default=0.75)
     parser.add_argument('-a', "--alpha", type=float, default=0.1)
     parser.add_argument('-bs', "--batch_size", type=int, default=32)
     parser.add_argument('-ls', "--least_samples", type=int, default=1)
+    parser.add_argument('-spr', "--sampling_ratio", type=float, default=1,
+                        help='Number of classes per client relative to overall size (e.g, 0.5 of MNIST -> 70000 * 0.5 = 35000 / 20) -> 1750')
     args = parser.parse_args()
     run(args)
 
